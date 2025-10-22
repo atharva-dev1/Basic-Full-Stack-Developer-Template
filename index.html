@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>John Doe - Full-Stack Developer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Fallback background */
+            color: #d1d5db;
+            overflow-x: hidden;
+        }
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        .glass-effect {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .form-input {
+            background-color: #1f2937;
+            border-color: #4b5563;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #38bdf8;
+            box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.4);
+        }
+        .active-nav {
+            color: #38bdf8;
+            font-weight: 600;
+        }
+
+        /* --- Nav Link Effects --- */
+        .nav-link {
+            position: relative;
+            padding-bottom: 6px; /* Space for the underline */
+        }
+        /* The underline bar */
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: #38bdf8; /* sky-400 */
+            transform: scaleX(0); /* Start hidden */
+            transform-origin: bottom right;
+            transition: transform 0.3s ease-out;
+        }
+        /* Hover effect: underline grows from right to left */
+        .nav-link:hover::after {
+            transform: scaleX(1);
+            transform-origin: bottom left;
+        }
+        /* Active link effect: underline is always visible and full-width */
+        .nav-link.active-nav::after {
+            transform: scaleX(1);
+            transform-origin: bottom left;
+        }
+        /* --- End Nav Link Effects --- */
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(30px);
+            transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+        }
+        .reveal.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* --- Project Card Enhancements --- */
+        .project-grid {
+            perspective: 1500px;
+        }
+        .project-card {
+            position: relative;
+            overflow: hidden;
+            transform-style: preserve-3d;
+            transition: transform 0.4s ease-out, box-shadow 0.4s ease-out;
+        }
+        /* No 3D tilt on mobile for better usability */
+        @media (min-width: 768px) {
+            .project-card:hover {
+                transform: translateY(-10px) rotateX(8deg) rotateY(4deg);
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.4);
+            }
+        }
+        .project-card-content { position: relative; z-index: 2; }
+        .project-card img { transition: transform 0.4s ease-out; }
+        .project-card:hover img { transform: scale(1.05); }
+        .project-card::before {
+            content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: conic-gradient(from 180deg at 50% 50%, #2a8af6 0deg, #a855f7 72deg, #f43f5e 144deg, #eab308 216deg, #84cc16 288deg, #2a8af6 360deg);
+            z-index: 0; opacity: 0; animation: rotating-glow 4s linear infinite; transition: opacity 0.4s ease-out;
+        }
+        .project-card:hover::before { opacity: 1; }
+        .project-card::after {
+            content: ''; position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px;
+            background: #1e293b; border-radius: 0.5rem; z-index: 1;
+        }
+        @keyframes rotating-glow { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* End Project Card Enhancements */
+
+        /* --- Responsive Timeline --- */
+        .timeline-container { position: relative; max-width: 1000px; margin: 0 auto; }
+        /* Desktop timeline bar */
+        .timeline-container::after { content: ''; position: absolute; width: 4px; background-color: #374151; top: 0; bottom: 0; left: 50%; margin-left: -2px; border-radius: 2px; }
+        .timeline-item { padding: 10px 40px; position: relative; width: 50%; }
+        .timeline-item::after { content: ''; position: absolute; width: 20px; height: 20px; right: -10px; background-color: #111827; border: 4px solid #38bdf8; top: 28px; border-radius: 50%; z-index: 1; }
+        .timeline-left { left: 0; }
+        .timeline-right { left: 50%; }
+        .timeline-left::before { content: " "; height: 0; position: absolute; top: 32px; width: 0; z-index: 1; right: 30px; border: medium solid #374151; border-width: 10px 0 10px 10px; border-color: transparent transparent transparent #374151; }
+        .timeline-right::before { content: " "; height: 0; position: absolute; top: 32px; width: 0; z-index: 1; left: 30px; border: medium solid #374151; border-width: 10px 10px 10px 0; border-color: transparent #374151 transparent transparent; }
+        .timeline-right::after { left: -10px; }
+        .timeline-content { padding: 20px 30px; position: relative; border-radius: 8px; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+        .timeline-content:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(56, 189, 248, 0.1); }
+        
+        /* Mobile timeline adjustments */
+        @media screen and (max-width: 768px) {
+            .timeline-container::after { left: 20px; }
+            .timeline-item { width: 100%; padding-left: 60px; padding-right: 15px; }
+            .timeline-item::before { left: 45px; border-width: 10px 10px 10px 0; border-color: transparent #374151 transparent transparent; }
+            .timeline-left::after, .timeline-right::after { left: 10px; }
+            .timeline-right { left: 0%; }
+        }
+        /* End Responsive Timeline */
+
+        /* --- Skills Marquee --- */
+        .skills-marquee { width: 100%; overflow: hidden; position: relative; -webkit-mask-image: linear-gradient(to right, transparent, white 20%, white 80%, transparent); mask-image: linear-gradient(to right, transparent, white 20%, white 80%, transparent); }
+        .skills-track { display: flex; width: calc(250px * 14); animation: scroll 40s linear infinite; } /* Width adjusted for more items */
+        .skills-marquee:hover .skills-track { animation-play-state: paused; }
+        .skill-item { width: 250px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; padding: 20px; gap: 1rem; transition: transform 0.3s ease; }
+        .skill-item:hover { transform: scale(1.1); }
+        .skill-item svg { width: 48px; height: 48px; }
+        @keyframes scroll { 0% { transform: translateX(0); } 100% { transform: translateX(calc(-250px * 7)); } } /* Adjusted for more items */
+    </style>
+</head>
+<body class="antialiased">
+
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- Header: Hidden on mobile (md:flex), hamburger shown -->
+    <header id="header" class="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="text-2xl font-bold text-white transition-transform duration-300 hover:scale-105">John Doe</a>
+            <nav class="hidden md:flex space-x-8">
+                <a href="#about" class="nav-link text-gray-300 hover:text-sky-400 transition duration-300 relative">About</a>
+                <a href="#experience" class="nav-link text-gray-300 hover:text-sky-400 transition duration-300 relative">Experience</a>
+                <a href="#skills" class="nav-link text-gray-300 hover:text-sky-400 transition duration-300 relative">Skills</a>
+                <a href="#projects" class="nav-link text-gray-300 hover:text-sky-400 transition duration-300 relative">Projects</a>
+                <a href="#contact" class="nav-link text-gray-300 hover:text-sky-400 transition duration-300 relative">Contact</a>
+            </nav>
+            <!-- Hamburger button: Shown only on mobile (md:hidden) -->
+            <button id="mobile-menu-button" class="md:hidden text-white"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" /></svg></button>
+        </div>
+        <!-- Mobile Menu: Hidden by default, toggled with JS -->
+        <div id="mobile-menu" class="hidden md:hidden bg-gray-900/80 backdrop-blur-sm"><a href="#about" class="block py-2 px-6 text-sm text-gray-300 hover:bg-gray-700">About</a><a href="#experience" class="block py-2 px-6 text-sm text-gray-300 hover:bg-gray-700">Experience</a><a href="#skills" class="block py-2 px-6 text-sm text-gray-300 hover:bg-gray-700">Skills</a><a href="#projects" class="block py-2 px-6 text-sm text-gray-300 hover:bg-gray-700">Projects</a><a href="#contact" class="block py-2 px-6 text-sm text-gray-300 hover:bg-gray-700">Contact</a></div>
+    </header>
+
+    <main class="container mx-auto px-6 pt-24 relative z-10">
+        <!-- Hero Section: Responsive typography -->
+        <section id="hero" class="min-h-screen flex flex-col justify-center"><div class="max-w-4xl"><h1 class="text-5xl md:text-7xl font-bold text-white leading-tight reveal">Hi, I'm John Doe.</h1><h2 class="text-5xl md:text-7xl font-bold text-sky-400 leading-tight reveal" style="transition-delay: 100ms;">Full-Stack Developer.</h2><p class="mt-6 text-lg md:text-xl max-w-2xl reveal" style="transition-delay: 200ms;">I build efficient, scalable, and user-friendly web applications from scratch. Turning complex problems into elegant digital solutions.</p><div class="mt-8 flex gap-4 flex-wrap reveal" style="transition-delay: 300ms;"><a href="#projects" class="bg-sky-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-600 transition duration-300 transform hover:scale-105">View My Work</a><a href="#contact" class="border-2 border-gray-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-700 hover:border-gray-700 transition duration-300 transform hover:scale-105">Get In Touch</a></div></div></section>
+
+        <!-- About Section: Stacks vertically on mobile (flex-col), side-by-side on desktop (md:flex-row) -->
+        <section id="about" class="py-24"><h2 class="text-4xl font-bold text-center text-white mb-12 reveal">About Me</h2><div class="glass-effect rounded-xl p-8 md:p-12 flex flex-col md:flex-row items-center gap-12 reveal"><div class="md:w-1/3 flex-shrink-0"><img src="https://placehold.co/400x400/111827/d1d5db?text=John" alt="Portrait of John Doe" class="rounded-full mx-auto shadow-lg w-48 h-48 md:w-64 md:h-64 object-cover transform hover:scale-105 transition-transform duration-500 border-4 border-gray-700"></div><div class="md:w-2/3 text-center md:text-left"><p class="mb-4">Hello! I'm John, a full-stack developer based in Lucknow, UP. My fascination with technology began when I built my first simple website, and since then, I've been on a journey of continuous learning and creation in the world of web development.</p><p class="mb-6">I specialize in the MERN stack but I'm always eager to explore new technologies. My goal is to create applications that are not just functional, but also provide a seamless and enjoyable user experience.</p><a href="#" download="John_Doe_Resume.pdf" class="inline-block bg-sky-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-600 transition duration-300 transform hover:scale-105">Download Resume</a></div></div></section>
+
+        <section id="experience" class="py-24"><h2 class="text-4xl font-bold text-center text-white mb-16 reveal">Work Experience</h2><div class="timeline-container"><div class="timeline-item timeline-left reveal"><div class="timeline-content glass-effect"><h3 class="text-xl font-bold text-sky-400">Full-Stack Developer</h3><p class="text-sm text-gray-400 mb-2">Tech Solutions Inc. | 2022 - Present</p><p class="text-sm">Developed and maintained full-stack web applications for various clients, utilizing React, Node.js, and PostgreSQL.</p></div></div><div class="timeline-item timeline-right reveal"><div class="timeline-content glass-effect"><h3 class="text-xl font-bold text-sky-400">Junior Web Developer</h3><p class="text-sm text-gray-400 mb-2">Innovate Web Co. | 2020 - 2022</p><p class="text-sm">Assisted in building responsive front-end interfaces and contributed to back-end development with PHP and MySQL.</p></div></div><div class="timeline-item timeline-left reveal"><div class="timeline-content glass-effect"><h3 class="text-xl font-bold text-sky-400">Web Development Intern</h3><p class="text-sm text-gray-400 mb-2">Digital Crafters | Summer 2019</p><p class="text-sm">Worked on updating and debugging existing client websites and learned the fundamentals of the MERN stack.</p></div></div></div></section>
+
+        <section id="skills" class="py-24"><h2 class="text-4xl font-bold text-center text-white mb-12 reveal">Technologies I Use</h2><div class="skills-marquee reveal"><div class="skills-track"><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>JavaScript</title><path d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.82-2.014-1.925-2.613-1.16-.61-2.438-1.012-3.138s-1.161-1.2-1.996-1.638c-.9-.45-1.98-.63-2.97-.54-.99.09-1.95.45-2.79.99-.84.54-1.56 1.29-2.07 2.13-.51.84-.81 1.83-.84 2.82-.03 1.02.21 2.01.69 2.91.48.9 1.2 1.68 2.07 2.22.87.54 1.86.81 2.88.75.99-.06 1.95-.39 2.82-.93.84-.54 1.56-1.29 2.04-2.13.48-.84.75-1.77.75-2.73 0-.33-.03-.66-.06-.96zm-3.858-6.048c.63.48 1.05 1.14 1.29 1.89.24.75.21 1.53-.06 2.25-.27.72-.75 1.35-1.38 1.8-.63.45-1.38.72-2.16.78-.78.06-1.56-.09-2.25-.45-.69-.36-1.26-.9-1.65-1.56-.39-.66-.6-1.41-.57-2.19.03-.78.3-1.53.75-2.16.45-.63 1.08-1.11 1.8-1.38.72-.27 1.5-.27 2.22-.06.72.21 1.35.63 1.8 1.23z" fill="#F7DF1E"/></svg><span class="text-white font-semibold">JavaScript</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>React</title><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3.5-9.5c.828 0 1.5-.672 1.5-1.5s-.672-1.5-1.5-1.5-1.5.672-1.5 1.5.672 1.5 1.5 1.5zm7 0c.828 0 1.5-.672 1.5-1.5s-.672-1.5-1.5-1.5-1.5.672-1.5 1.5.672 1.5 1.5 1.5zm-3.5 4c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" fill="#61DAFB"/></svg><span class="text-white font-semibold">React</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Node.js</title><path d="M12 2.59c-5.29 0-9.58 4.29-9.58 9.58s4.29 9.58 9.58 9.58 9.58-4.29 9.58-9.58S17.29 2.59 12 2.59zM12 20.29c-4.57 0-8.29-3.72-8.29-8.29s3.72-8.29 8.29-8.29 8.29 3.72 8.29 8.29-3.72 8.29-8.29 8.29zm-1-12.72h2v10h-2v-10z" fill="#339933"/></svg><span class="text-white font-semibold">Node.js</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Docker</title><path d="M22.122 10.334c-.219-3.32-2.188-6.19-5.11-7.794C14.048.96 10.235.53 6.94 2.112 3.65 3.69 1.68 6.561 1.462 9.88c-.217 3.32 1.458 6.54 4.38 8.145 2.924 1.604 6.482 1.763 9.544.45l.096-.04c.14-.06.27-.13.4-.2.12-.07.24-.15.35-.23.11-.08.22-.16.32-.25.1-.1.19-.2.28-.3.09-.1.18-.21.26-.32.08-.11.16-.22.23-.33.07-.12.14-.24.2-.36.06-.12.12-.25.17-.38.05-.12.1-.25.14-.38.04-.12.08-.25.11-.38.03-.12.06-.24.08-.37.02-.12.04-.24.05-.36.01-.12.02-.24.02-.36v-.04c.01-.12.01-.24.01-.36 0-.12-.01-.24-.01-.36l-.01-.04c-.01-.12-.02-.24-.04-.36-.02-.12-.04-.24-.06-.36l-.07-.27-.04-.15c-.03-.12-.06-.24-.1-.36l-.11-.34c-.04-.12-.08-.24-.13-.35l-.16-.41c-.06-.15-.12-.29-.19-.43l-.22-.4c-.08-.14-.17-.28-.26-.41l-.28-.38c-.1-.13-.21-.26-.32-.38l-.34-.35c-.12-.12-.24-.23-.37-.34l-.36-.29c-.13-.1-.26-.2-.4-.29l-.37-.25c-.13-.08-.26-.16-.4-.23l-.37-.2c-.14-.07-.28-.14-.42-.2l-.37-.17c-.14-.06-.29-.12-.44-.17l-.35-.11c-.16-.05-.32-.09-.48-.13l-.34-.08c-.16-.03-.33-.06-.5-.09l-.32-.05c-.17-.02-.34-.04-.51-.05l-.31-.03c-.18-.01-.36-.02-.54-.02h-.19c-.18 0-.35.01-.53.02l-.31.03c-.17.01-.34.03-.51.05l-.32.05c-.17.03-.33.06-.5.09l-.34.08c-.16.04-.32.08-.48.13l-.35.11c-.15.05-.3.11-.44.17l-.37.17c-.14.06-.28.13-.42.2l-.37.2c-.14.07-.27.15-.4.23l-.37.25c-.28.19-.55.4-.81.61l-.34.29c-.13.11-.25.22-.37.34l-.34.35c-.11.12-.22.25-.32.38l-.28.38c-.09.13-.18.27-.26.41l-.22.4c-.07.14-.13.28-.19.43l-.16.41c-.05.11-.1.23-.13.35l-.11.34c-.04.12-.07.24-.1.36l-.04.15-.07.27c-.02.12-.04.24-.06.36-.02.12-.04.24-.05.36-.01.12-.02.24-.02.36v.04c0 .12.01.24.01.36 0 .12.01.24.02.36l.05.36c.02.13.05.25.08.37.03.13.07.25.11.38.04.13.09.25.14.38.05.13.11.25.17.38.06.13.13.25.2.36.07.11.15.22.23.33.08.11.17.21.26.32.09.1.19.2.28.3.1.09.21.17.32.25.11.08.23.16.35.23.13.07.26.14.4.2l.096.04c3.062 1.313 6.62.154 9.545-.45 2.92-1.605 4.597-4.825 4.38-8.145z" fill="#2496ED"/></svg><span class="text-white font-semibold">Docker</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Python</title><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#3776AB"/><path d="M12 15.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 8.5 12 8.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm0-5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z" fill="#FFD43B"/></svg><span class="text-white font-semibold">Python</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Git</title><path d="M22.12 10.41l-2.2-2.2c-.1-.1-.23-.15-.36-.15H17.5c-.3 0-.55.25-.55.55v1.44c0 .3.25.55.55.55h.95c.13 0 .26.05.35.15l2.2 2.2c.1.1.15.23.15.35v1.49c0 .13-.05.26-.15.35l-2.2 2.2c-.1.1-.22.15-.35.15h-.95c-.3 0-.55.25-.55.55v1.44c0 .3.25.55.55.55h2.06c.13 0 .26-.05.36-.15l2.2-2.2c.1-.1.15-.22.15-.35v-6.3c0-.12-.05-.25-.15-.36zM12.55 6.04c-.28-.28-.6-.4-1.1-.4-1 0-1.8.8-1.8 1.8s.8 1.8 1.8 1.8c.4 0 .8-.13 1.1-.4l2.2-2.2c.1-.1.15-.22.15-.35s-.05-.25-.15-.35l-2.2-2.2zM12.55 16.16c-.28-.28-.6-.4-1.1-.4-1 0-1.8.8-1.8 1.8s.8 1.8 1.8 1.8c.4 0 .8-.13 1.1-.4l2.2-2.2c.1-.1.15-.22.15-.35s-.05-.25-.15-.35l-2.2-2.2z" fill="#F05032"/></svg><span class="text-white font-semibold">Git</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Amazon Web Services</title><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#232F3E"/><path d="M16.33 16.14c-.4.24-.86.42-1.35.53-.49.11-1.01.17-1.54.17-.72 0-1.4-.1-2.04-.31-.64-.2-1.22-.5-1.71-.88-.49-.38-.89-.84-1.2-1.37s-.46-1.12-.46-1.77c0-.68.16-1.32.48-1.9.32-.58.74-1.08 1.25-1.49.51-.41 1.09-.72 1.73-.94s1.32-.33 2.03-.33c.56 0 1.11.06 1.63.19.52.12 1 .31 1.44.56.44.25.81.56 1.11.93.3.37.52.79.66 1.25l-2.07.87c-.1-.28-.26-.52-.48-.72s-.48-.36-.78-.47c-.3-.11-.63-.16-.98-.16-.49 0-.95.09-1.37.28-.42.18-.78.45-1.07.79-.29.34-.51.76-.65 1.23-.14.47-.21.99-.21 1.55 0 .58.07 1.12.22 1.6.15.48.38.9.68 1.26.3.36.67.64 1.1.84.43.2.9.3 1.4.3.36 0 .7-.05 1.02-.16.32-.1.6-.25.84-.45l.93 1.83z" fill="#FF9900"/></svg><span class="text-white font-semibold">AWS</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>JavaScript</title><path d="M0 0h24v24H0V0zm22.034 18.276c-.175-1.095-.82-2.014-1.925-2.613-1.16-.61-2.438-1.012-3.138s-1.161-1.2-1.996-1.638c-.9-.45-1.98-.63-2.97-.54-.99.09-1.95.45-2.79.99-.84.54-1.56 1.29-2.07 2.13-.51.84-.81 1.83-.84 2.82-.03 1.02.21 2.01.69 2.91.48.9 1.2 1.68 2.07 2.22.87.54 1.86.81 2.88.75.99-.06 1.95-.39 2.82-.93.84-.54 1.56-1.29 2.04-2.13.48-.84.75-1.77.75-2.73 0-.33-.03-.66-.06-.96zm-3.858-6.048c.63.48 1.05 1.14 1.29 1.89.24.75.21 1.53-.06 2.25-.27.72-.75 1.35-1.38 1.8-.63.45-1.38.72-2.16.78-.78.06-1.56-.09-2.25-.45-.69-.36-1.26-.9-1.65-1.56-.39-.66-.6-1.41-.57-2.19.03-.78.3-1.53.75-2.16.45-.63 1.08-1.11 1.8-1.38.72-.27 1.5-.27 2.22-.06.72.21 1.35.63 1.8 1.23z" fill="#F7DF1E"/></svg><span class="text-white font-semibold">JavaScript</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>React</title><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-3.5-9.5c.828 0 1.5-.672 1.5-1.5s-.672-1.5-1.5-1.5-1.5.672-1.5 1.5.672 1.5 1.5 1.5zm7 0c.828 0 1.5-.672 1.5-1.5s-.672-1.5-1.5-1.5-1.5.672-1.5 1.5.672 1.5 1.5 1.5zm-3.5 4c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z" fill="#61DAFB"/></svg><span class="text-white font-semibold">React</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Node.js</title><path d="M12 2.59c-5.29 0-9.58 4.29-9.58 9.58s4.29 9.58 9.58 9.58 9.58-4.29 9.58-9.58S17.29 2.59 12 2.59zM12 20.29c-4.57 0-8.29-3.72-8.29-8.29s3.72-8.29 8.29-8.29 8.29 3.72 8.29 8.29-3.72 8.29-8.29 8.29zm-1-12.72h2v10h-2v-10z" fill="#339933"/></svg><span class="text-white font-semibold">Node.js</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Docker</title><path d="M22.122 10.334c-.219-3.32-2.188-6.19-5.11-7.794C14.048.96 10.235.53 6.94 2.112 3.65 3.69 1.68 6.561 1.462 9.88c-.217 3.32 1.458 6.54 4.38 8.145 2.924 1.604 6.482 1.763 9.544.45l.096-.04c.14-.06.27-.13.4-.2.12-.07.24-.15.35-.23.11-.08.22-.16.32-.25.1-.1.19-.2.28-.3.09-.1.18-.21.26-.32.08-.11.16-.22.23-.33.07-.12.14-.24.2-.36.06-.12.12-.25.17-.38.05-.12.1-.25.14-.38.04-.12.08-.25.11-.38.03-.12.06-.24.08-.37.02-.12.04-.24.05-.36.01-.12.02-.24.02-.36v-.04c.01-.12.01-.24.01-.36 0-.12-.01-.24-.01-.36l-.01-.04c-.01-.12-.02-.24-.04-.36-.02-.12-.04-.24-.06-.36l-.07-.27-.04-.15c-.03-.12-.06-.24-.1-.36l-.11-.34c-.04-.12-.08-.24-.13-.35l-.16-.41c-.06-.15-.12-.29-.19-.43l-.22-.4c-.08-.14-.17-.28-.26-.41l-.28-.38c-.1-.13-.21-.26-.32-.38l-.34-.35c-.12-.12-.24-.23-.37-.34l-.36-.29c-.13-.1-.26-.2-.4-.29l-.37-.25c-.13-.08-.26-.16-.4-.23l-.37-.2c-.14-.07-.28-.14-.42-.2l-.37-.17c-.14-.06-.29-.12-.44-.17l-.35-.11c-.16-.05-.32-.09-.48-.13l-.34-.08c-.16-.03-.33-.06-.5-.09l-.32-.05c-.17-.02-.34-.04-.51-.05l-.31-.03c-.18-.01-.36-.02-.54-.02h-.19c-.18 0-.35.01-.53.02l-.31.03c-.17.01-.34.03-.51.05l-.32.05c-.17.03-.33.06-.5.09l-.34.08c-.16.04-.32.08-.48.13l-.35.11c-.15.05-.3.11-.44.17l-.37.17c-.14.06-.28.13-.42.2l-.37.2c-.14.07-.27.15-.4.23l-.37.25c-.28.19-.55.4-.81.61l-.34.29c-.13.11-.25.22-.37.34l-.34.35c-.11.12-.22.25-.32.38l-.28.38c-.09.13-.18.27-.26.41l-.22.4c-.07.14-.13.28-.19.43l-.16.41c-.05.11-.1.23-.13.35l-.11.34c-.04.12-.07.24-.1.06l-.04.15-.07.27c-.02.12-.04.24-.06.36-.02.12-.04.24-.05.36-.01.12-.02.24-.02.36v.04c0 .12.01.24.01.36 0 .12.01.24.02.36l.05.36c.02.13.05.25.08.37.03.13.07.25.11.38.04.13.09.25.14.38.05.13.11.25.17.38.06.13.13.25.2.36.07.11.15.22.23.33.08.11.17.21.26.32.09.1.19.2.28.3.1.09.21.17.32.25.11.08.23.16.35.23.13.07.26.14.4.2l.096.04c3.062 1.313 6.62.154 9.545-.45 2.92-1.605 4.597-4.825 4.38-8.145z" fill="#2496ED"/></svg><span class="text-white font-semibold">Docker</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Python</title><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#3776AB"/><path d="M12 15.5c-1.93 0-3.5-1.57-3.5-3.5S10.07 8.5 12 8.5s3.5 1.57 3.5 3.5-1.57 3.5-3.5 3.5zm0-5c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z" fill="#FFD43B"/></svg><span class="text-white font-semibold">Python</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Git</title><path d="M22.12 10.41l-2.2-2.2c-.1-.1-.23-.15-.36-.15H17.5c-.3 0-.55.25-.55.55v1.44c0 .3.25.55.55.55h.95c.13 0 .26.05.35.15l2.2 2.2c.1.1.15.23.15.35v1.49c0 .13-.05.26-.15.35l-2.2 2.2c-.1.1-.22.15-.35.15h-.95c-.3 0-.55.25-.55.55v1.44c0 .3.25.55.55.55h2.06c.13 0 .26-.05.36-.15l2.2-2.2c.1-.1.15-.22.15-.35v-6.3c0-.12-.05-.25-.15-.36zM12.55 6.04c-.28-.28-.6-.4-1.1-.4-1 0-1.8.8-1.8 1.8s.8 1.8 1.8 1.8c.4 0 .8-.13 1.1-.4l2.2-2.2c.1-.1.15-.22.15-.35s-.05-.25-.15-.35l-2.2-2.2zM12.55 16.16c-.28-.28-.6-.4-1.1-.4-1 0-1.8.8-1.8 1.8s.8 1.8 1.8 1.8c.4 0 .8-.13 1.1-.4l2.2-2.2c.1-.1.15-.22.15-.35s-.05-.25-.15-.35l-2.2-2.2z" fill="#F05032"/></svg><span class="text-white font-semibold">Git</span></div><div class="skill-item"><svg role="img" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><title>Amazon Web Services</title><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" fill="#232F3E"/><path d="M16.33 16.14c-.4.24-.86.42-1.35.53-.49.11-1.01.17-1.54.17-.72 0-1.4-.1-2.04-.31-.64-.2-1.22-.5-1.71-.88-.49-.38-.89-.84-1.2-1.37s-.46-1.12-.46-1.77c0-.68.16-1.32.48-1.9.32-.58.74-1.08 1.25-1.49.51-.41 1.09-.72 1.73-.94s1.32-.33 2.03-.33c.56 0 1.11.06 1.63.19.52.12 1 .31 1.44.56.44.25.81.56 1.11.93.3.37.52.79.66 1.25l-2.07.87c-.1-.28-.26-.52-.48-.72s-.48-.36-.78-.47c-.3-.11-.63-.16-.98-.16-.49 0-.95.09-1.37.28-.42.18-.78.45-1.07.79-.29.34-.51.76-.65 1.23-.14.47-.21.99-.21 1.55 0 .58.07 1.12.22 1.6.15.48.38.9.68 1.26.3.36.67.64 1.1.84.43.2.9.3 1.4.3.36 0 .7-.05 1.02-.16.32-.1.6-.25.84-.45l.93 1.83z" fill="#FF9900"/></svg><span class="text-white font-semibold">AWS</span></div></div></div></section>
+
+        <!-- Projects Section: Responsive Grid -->
+        <section id="projects" class="py-24">
+            <div class="text-center mb-16 reveal"><h2 class="text-4xl font-bold text-white">My Creations</h2><p class="mt-4 max-w-2xl mx-auto text-lg text-gray-400">Here's a selection of my recent work. Hover over a card for a closer look.</p></div>
+            <!-- Grid: 1 col on mobile, 2 on medium, 3 on large -->
+            <div class="project-grid grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+                <div class="project-card rounded-lg reveal"><div class="project-card-content p-6 flex flex-col flex-grow"><img src="https://placehold.co/600x400/111827/38bdf8?text=E-Commerce" alt="E-commerce Platform" class="w-full h-48 object-cover rounded-md mb-4"><h3 class="text-xl font-semibold text-white mb-2">E-commerce Platform</h3><p class="mb-4 flex-grow text-sm text-gray-400">A full-featured e-commerce site with product listings, shopping cart, and user authentication.</p><div class="mt-auto flex gap-4"><a href="#" class="bg-sky-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-sky-600 transition duration-300">Live Demo</a><a href="#" class="border border-gray-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-gray-700 transition duration-300">GitHub</a></div></div></div>
+                <div class="project-card rounded-lg reveal" style="transition-delay: 100ms;"><div class="project-card-content p-6 flex flex-col flex-grow"><img src="https://placehold.co/600x400/111827/a855f7?text=Chat+App" alt="Real-time Chat App" class="w-full h-48 object-cover rounded-md mb-4"><h3 class="text-xl font-semibold text-white mb-2">Real-time Chat App</h3><p class="mb-4 flex-grow text-sm text-gray-400">A web-based chat application using WebSockets for instant messaging between users in rooms.</p><div class="mt-auto flex gap-4"><a href="#" class="bg-sky-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-sky-600 transition duration-300">Live Demo</a><a href="#" class="border border-gray-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-gray-700 transition duration-300">GitHub</a></div></div></div>
+                <div class="project-card rounded-lg reveal" style="transition-delay: 200ms;"><div class="project-card-content p-6 flex flex-col flex-grow"><img src="https://placehold.co/600x400/111827/f43f5e?text=API" alt="Task Management API" class="w-full h-48 object-cover rounded-md mb-4"><h3 class="text-xl font-semibold text-white mb-2">Task Management API</h3><p class="mb-4 flex-grow text-sm text-gray-400">A robust RESTful API for a to-do list application with JWT authentication and filtering.</p><div class="mt-auto flex gap-4"><a href="#" class="bg-sky-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-sky-600 transition duration-300">API Docs</a><a href="#" class="border border-gray-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-gray-700 transition duration-300">GitHub</a></div></div></div>
+                <div class="project-card rounded-lg reveal" style="transition-delay: 0ms;"><div class="project-card-content p-6 flex flex-col flex-grow"><img src="https://placehold.co/600x400/111827/eab308?text=News+Aggregator" alt="AI News Aggregator" class="w-full h-48 object-cover rounded-md mb-4"><h3 class="text-xl font-semibold text-white mb-2">AI News Aggregator</h3><p class="mb-4 flex-grow text-sm text-gray-400">A platform that fetches and summarizes news articles from various sources using an AI model.</p><div class="mt-auto flex gap-4"><a href="#" class="bg-sky-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-sky-600 transition duration-300">Live Demo</a><a href="#" class="border border-gray-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-gray-700 transition duration-300">GitHub</a></div></div></div>
+                <div class="project-card rounded-lg reveal" style="transition-delay: 100ms;"><div class="project-card-content p-6 flex flex-col flex-grow"><img src="https://placehold.co/600x400/111827/84cc16?text=Cloud+Storage" alt="Cloud Storage Solution" class="w-full h-48 object-cover rounded-md mb-4"><h3 class="text-xl font-semibold text-white mb-2">Cloud Storage Solution</h3><p class="mb-4 flex-grow text-sm text-gray-400">A secure file storage application with folder management, built on AWS S3.</p><div class="mt-auto flex gap-4"><a href="#" class="bg-sky-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-sky-600 transition duration-300">Live Demo</a><a href="#" class="border border-gray-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-gray-700 transition duration-300">GitHub</a></div></div></div>
+                <div class="project-card rounded-lg reveal" style="transition-delay: 200ms;"><div class="project-card-content p-6 flex flex-col flex-grow"><img src="https://placehold.co/600x400/111827/6366f1?text=Data+Viz" alt="Data Visualization Dashboard" class="w-full h-48 object-cover rounded-md mb-4"><h3 class="text-xl font-semibold text-white mb-2">Data Viz Dashboard</h3><p class="mb-4 flex-grow text-sm text-gray-400">An interactive dashboard for visualizing complex datasets with D3.js and React.</p><div class="mt-auto flex gap-4"><a href="#" class="bg-sky-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-sky-600 transition duration-300">Live Demo</a><a href="#" class="border border-gray-500 text-white py-2 px-4 rounded-lg text-sm font-semibold hover:bg-gray-700 transition duration-300">GitHub</a></div></div></div>
+            </div>
+        </section>
+
+        <!-- Contact Section: Naturally responsive form -->
+        <section id="contact" class="py-24"><div class="reveal"><h2 class="text-4xl font-bold text-center text-white mb-4">Get In Touch</h2><p class="text-center mb-12 max-w-2xl mx-auto">I'm currently open to new opportunities. Feel free to send me a message!</p></div><div class="max-w-xl mx-auto reveal glass-effect p-8 rounded-xl"><form id="contact-form" class="space-y-6"><div><label for="name" class="block text-sm font-medium text-gray-300">Name</label><input type="text" id="name" name="name" required class="form-input mt-1 block w-full rounded-md text-white shadow-sm transition"></div><div><label for="email" class="block text-sm font-medium text-gray-300">Email</label><input type="email" id="email" name="email" required class="form-input mt-1 block w-full rounded-md text-white shadow-sm transition"></div><div><label for="message" class="block text-sm font-medium text-gray-300">Message</label><textarea id="message" name="message" rows="4" required class="form-input mt-1 block w-full rounded-md text-white shadow-sm transition"></textarea></div><div><button type="submit" class="w-full bg-sky-500 text-white font-semibold py-3 px-6 rounded-lg hover:bg-sky-600 transition duration-300 transform hover:scale-105">Send Message</button></div></form><p id="form-status" class="mt-4 text-center"></p></div></section>
+    </main>
+
+    <footer class="bg-gray-900/50 mt-16 relative z-10"><div class="container mx-auto px-6 py-6 text-center text-gray-400"><p>&copy; 2025 John Doe. All rights reserved.</p><p class="text-sm mt-1">Coded with 💙 in Lucknow, UP | Tuesday, 21 October 2025</p></div></footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Three.js Background Animation
+            let scene, camera, renderer, particles, mouseX = 0, mouseY = 0;
+            const windowHalfX = window.innerWidth / 2;
+            const windowHalfY = window.innerHeight / 2;
+
+            function initBackground() {
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('bg-canvas'), alpha: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+
+                const particleCount = 5000;
+                const positions = new Float32Array(particleCount * 3);
+                for (let i = 0; i < particleCount * 3; i++) {
+                    positions[i] = (Math.random() - 0.5) * 100;
+                }
+                const particlesGeometry = new THREE.BufferGeometry();
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                const particlesMaterial = new THREE.PointsMaterial({
+                    color: 0x38bdf8, size: 0.05, blending: THREE.AdditiveBlending, transparent: true, opacity: 0.6
+                });
+                particles = new THREE.Points(particlesGeometry, particlesMaterial);
+                scene.add(particles);
+                camera.position.z = 30;
+                document.addEventListener('mousemove', onDocumentMouseMove, false);
+                animate();
+            }
+
+            function onDocumentMouseMove(event) {
+                mouseX = (event.clientX - windowHalfX) / 100;
+                mouseY = (event.clientY - windowHalfY) / 100;
+            }
+
+            function animate() {
+                requestAnimationFrame(animate);
+                const time = Date.now() * 0.00005;
+                camera.position.x += (mouseX - camera.position.x) * 0.05;
+                camera.position.y += (-mouseY - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+                particles.rotation.x = time * 0.2;
+                particles.rotation.y = time * 0.4;
+                renderer.render(scene, camera);
+            }
+            // This function makes the background responsive
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            }, false);
+            
+            initBackground();
+
+            // Header style on scroll
+            const header = document.getElementById('header');
+            window.addEventListener('scroll', () => header.classList.toggle('glass-effect', window.scrollY > 50));
+
+            // Mobile menu toggle
+            const mobileMenuButton = document.getElementById('mobile-menu-button');
+            const mobileMenu = document.getElementById('mobile-menu');
+            mobileMenuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+            mobileMenu.querySelectorAll('a').forEach(link => link.addEventListener('click', () => mobileMenu.classList.add('hidden')));
+
+            // Contact form
+            const contactForm = document.getElementById('contact-form');
+            const formStatus = document.getElementById('form-status');
+            contactForm.addEventListener('submit', e => {
+                e.preventDefault();
+                formStatus.textContent = 'Sending...';
+                formStatus.className = 'mt-4 text-center text-gray-400';
+                setTimeout(() => {
+                    formStatus.textContent = 'Message sent successfully!';
+                    formStatus.className = 'mt-4 text-center text-green-400';
+                    contactForm.reset();
+                    setTimeout(() => formStatus.textContent = '', 3000);
+                }, 1500);
+            });
+
+            // Nav highlighting on scroll
+            const sections = document.querySelectorAll('section');
+            const navLinks = document.querySelectorAll('header nav a');
+            window.addEventListener('scroll', () => {
+                let current = '';
+                sections.forEach(section => { if (pageYOffset >= section.offsetTop - 150) current = section.id; });
+                navLinks.forEach(link => link.classList.toggle('active-nav', link.hash.includes(current)));
+            });
+
+            // Scroll reveal animations
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) entry.target.classList.add('visible');
+                });
+            }, { threshold: 0.1 });
+            document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+        });
+    </script>
+</body>
+</html>
+
+
