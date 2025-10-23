@@ -88,8 +88,8 @@ See the [LICENSE](./LICENSE) file for more details.
 
 **Developed by Atharva**
 📧 Email: [[your.email@example.com](mailto:your.email@example.com)]
-🌐 Portfolio: [your-portfolio-link.com]
-💼 LinkedIn: [linkedin.com/in/yourprofile]
-🐙 GitHub: [github.com/your-username]
+🌐 Portfolio: [https://atharva-dev1.github.io/Basic-Full-Stack-Developer-Template/]
+💼 LinkedIn: [linkedin.com/in/atharva2161]
+🐙 GitHub: [github.com/atharva-dev1]
 
 ---
